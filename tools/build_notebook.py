@@ -201,7 +201,7 @@ El cuaderno es la fuente de verdad de la entrega.  Cada celda de código lleva l
 | `expr_parser.py` | `ExprParser(sly.Parser)` con la gramática por niveles y `parse_minitcl_expr()`. |
 | `command_analyzer.py` | Validación de las formas de comando y reanálisis estático de cuerpos y condiciones. |
 | `tests/test_minitcl.py` | Pruebas reproducibles (no requieren `pytest`). |
-| `demo.py` | Demostración del pipeline en la terminal: `python3 demo.py [fichero.tcl]`. |
+| `demo.py` | Demostración en la terminal: `python3 demo.py tokens/ast/formas/expr/archivo/pruebas`. |
 | `ejemplos/` | Los cuatro programas de aceptación de la sección 15 y uno con un error. |
 | `Makefile` | El ciclo de trabajo: `make test`, `make demo`, `make build`, `make run`, `make check`. |
 
@@ -210,13 +210,34 @@ Ciclo de trabajo (`make help` lista todos los objetivos):
 ```bash
 make test                                  # las 35 pruebas
 make demo                                  # la demostración en la terminal
-make demo ARCHIVO=ejemplos/a_factorial.tcl   # con un fichero MiniTcl
 make build                                 # regenera el cuaderno y los módulos
 make run                                   # ejecuta el cuaderno y guarda las impresiones
 make check                                 # build + test + run (el ciclo completo)
 ```
 
 `make build` va siempre **antes** que `make run`: regenerar el cuaderno borra las impresiones que había guardado.
+
+Comandos de análisis (el texto va entre comillas; si se omite, el programa lo pide por la entrada estándar):
+
+```bash
+make tokens TEXTO="set x 1"                   # tokens del lexer manual
+make ast    TEXTO="set x 1"                   # AST del parser descendente recursivo
+make formas TEXTO="if {1} {puts si}"          # formas de comando detectadas
+make expr   EXPR="2 + 3 * 4"                 # tokens + AST de una expresión (SLY)
+make archivo FILE=ejemplos/a_factorial.tcl    # fichero MiniTcl: tokens + AST + formas
+```
+
+Los mismos comandos sin `make`, que además aceptan ficheros y las pruebas:
+
+```bash
+python3 demo.py tokens "set x 1"
+python3 demo.py ast "set x 1"
+python3 demo.py formas "if {1} {puts si}"
+python3 demo.py expr "2 + 3 * 4"
+python3 demo.py archivo ejemplos/a_factorial.tcl
+python3 demo.py pruebas
+python3 demo.py ayuda
+```
 """
 
 ANSWERS = [
