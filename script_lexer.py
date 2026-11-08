@@ -25,6 +25,35 @@ from dataclasses import dataclass
 
 from model import ParseError, Span, Token
 
+try:  # pragma: no cover - depende del entorno
+    from rich.console import Console
+
+    CONSOLA = Console()
+except ImportError:  # pragma: no cover - sin rich se imprime en texto plano
+    CONSOLA = None
+
+# Color por tipo de token, para leer la tabla de un vistazo.
+COLOR_TOKEN = {
+    "TEXT": "white",
+    "WS": "dim",
+    "SEP": "dim",
+    "EOF": "dim",
+    "VAR": "cyan",
+    "BRACED": "magenta",
+    "QOPEN": "green",
+    "QCLOSE": "green",
+    "LBRACKET": "yellow",
+    "RBRACKET": "yellow",
+}
+
+COLOR_TOKEN_SLY = {
+    "NUMBER": "yellow",
+    "BOOL": "green",
+    "VAR": "cyan",
+    "STRING": "magenta",
+    "CMD_SUBST": "red",
+}
+
 # --- Nombres de los tokens del contrato léxico (sección 3 del cuaderno) ------
 TEXT = "TEXT"
 VAR = "VAR"
@@ -365,7 +394,26 @@ def tokenize_script(source: str, source_name: str = "<input>", base_offset: int 
     return ScriptLexer(source, source_name, base_offset).tokenize()
 
 
-def show_tokens(tokens) -> None:
+def tipo_de_token(token) -> str:
+    """Nombre del tipo de un token, sea del lexer manual o de SLY."""
+    return token.kind if hasattr(token, "kind") else token.type
+
+
+def resumen_tokens(tokens) -> str:
+    """Recuento de tokens por tipo: ``TEXT×3, WS×2, EOF×1``."""
+    conteo: dict[str, int] = {}
+    for token in tokens:
+        tipo = tipo_de_token(token)
+        conteo[tipo] = conteo.get(tipo, 0) + 1
+    return ", ".join(f"{tipo}×{n}" for tipo, n in sorted(conteo.items()))
+
+
+def _escapar(texto: str) -> str:
+    """Escapa los corchetes para el marcado de rich."""
+    return texto.replace("[", "\\[")
+
+
+def show_tokens(tokens, resumen: bool = True) -> None:
     """Imprime la secuencia de tokens del analizador léxico.
 
     Se muestran las dos familias de tokens, porque su contrato es distinto:
@@ -378,15 +426,40 @@ def show_tokens(tokens) -> None:
         if len(value) > 40:
             value = value[:37] + "..."
         if hasattr(token, "kind"):
-            print(
-                f"  {token.kind:10} {value:24} "
-                f"[{token.span.start}:{token.span.end}] {token.span.source}"
+            tipo = token.kind
+            posicion = f"[{token.span.start}:{token.span.end}] {token.span.source}"
+            color = COLOR_TOKEN.get(tipo)
+        else:
+            tipo = token.type
+            posicion = f"línea {token.lineno} pos {token.index}"
+            color = COLOR_TOKEN_SLY.get(tipo)
+        if CONSOLA is not None and color:
+            CONSOLA.print(
+                f"  [bold {color}]{tipo.ljust(10)}[/] "
+                f"{_escapar(value).ljust(24)} {_escapar(posicion)}"
             )
         else:
-            print(
-                f"  {token.type:10} {value:24} "
-                f"línea {token.lineno} pos {token.index}"
-            )
+            print(f"  {tipo:10} {value:24} {posicion}")
+    if resumen:
+        print(f"  {len(list(tokens))} tokens: {resumen_tokens(tokens)}")
+
+
+def show_token_ruler(fuente: str, tokens) -> None:
+    """El fuente con los límites de cada token marcados debajo.
+
+    Es la vista más didáctica del análisis léxico: se ve de un vistazo dónde
+    acaba cada palabra y qué se considera un token.
+    """
+    print("--- el fuente y los límites de cada token ---")
+    print(fuente)
+    plano = fuente.replace("\n", " ")
+    marca = [" "] * len(plano)
+    for token in tokens:
+        if not hasattr(token, "kind") or token.kind in ("WS", "SEP", "EOF"):
+            continue
+        for posicion in range(token.span.start, min(token.span.end, len(plano))):
+            marca[posicion] = "^"
+    print("".join(marca).rstrip())
 
 
 def scan_substitution(

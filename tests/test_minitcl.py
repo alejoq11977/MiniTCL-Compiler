@@ -44,11 +44,15 @@ from model import (
     Variable,
     VariableExpr,
     Word,
+    ast_lines,
     cover,
     expr_shape,
 )
-from script_lexer import show_tokens, tokenize_script
+from script_lexer import resumen_tokens, show_token_ruler, show_tokens, tokenize_script
 from script_parser import ScriptParser, parse_minitcl, read_substitution
+
+
+
 
 
 
@@ -120,6 +124,30 @@ def test_lexer_tokens_basicos():
     ]
     # Un salto de línea siempre es SEP, también después de un comentario.
     assert kinds_of("# comentario\nputs hi") == ["SEP", "TEXT", "WS", "TEXT", "EOF"]
+
+
+def test_vista_compacta_del_ast():
+    """El árbol compacto cabe en una línea por nodo y conserva la información."""
+    lineas = ast_lines(parse_minitcl("set x hola_${nombre}"), raiz=True)
+    assert lineas[0].startswith("Script (1 comandos)")
+    assert lineas[1].startswith("└─ Command (3 palabras)")
+    assert lineas[-1] == "   └─ Word(bare) 'hola_' + $nombre"
+    # Una línea por nodo: la vista compacta es mucho más corta que la del
+    # cuaderno, que recorre un campo por línea.
+    assert len(lineas) == 5
+
+
+def test_ruler_de_tokens():
+    """El ruler marca los límites de cada token debajo del fuente."""
+    buffer = io.StringIO()
+    with redirect_stdout(buffer):
+        show_token_ruler("puts a#b", tokenize_script("puts a#b"))
+    assert "^^^^ ^^^" in buffer.getvalue()
+
+
+def test_resumen_de_tokens():
+    """El resumen cuenta los tokens por tipo."""
+    assert resumen_tokens(tokenize_script("set x 1")) == "EOF×1, TEXT×3, WS×2"
 
 
 def test_show_tokens():

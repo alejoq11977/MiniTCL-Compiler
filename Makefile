@@ -17,6 +17,7 @@
 #   make tokens TEXTO="set x 1"                tokens del lexer manual
 #   make ast    TEXTO="set x 1"                AST del parser descendente
 #   make formas TEXTO="if {1} {puts si}"       formas de comando
+#   make fuente TEXTO="puts a#b"               el fuente con los límites de token
 #   make expr   EXPR="2 + 3 * 4"               tokens + AST de una expresión (SLY)
 #   make archivo FILE=ejemplos/a_factorial.tcl   fichero MiniTcl completo
 #   make demo   ARCHIVO=ejemplos/a_factorial.tcl   atajo de "archivo"
@@ -28,7 +29,7 @@ TEXTO    ?=
 EXPR     ?=
 FILE     ?=
 
-.PHONY: help test demo tokens ast formas expr archivo pruebas build run check clean
+.PHONY: help test demo tokens ast formas fuente expr archivo pruebas build run check clean
 
 help:
 	@echo "MiniTcl · analizador sintáctico — objetivos disponibles:"
@@ -43,6 +44,7 @@ help:
 	@echo "  make tokens TEXTO=\"set x 1\"                 tokens del lexer manual"
 	@echo "  make ast    TEXTO=\"set x 1\"                 AST del parser descendente"
 	@echo "  make formas TEXTO=\"if {1} {puts si}\"        formas de comando"
+	@echo "  make fuente TEXTO=\"puts a#b\"                el fuente con los límites de token"
 	@echo "  make expr   EXPR=\"2 + 3 * 4\"                tokens + AST de una expresión"
 	@echo "  make archivo FILE=ejemplos/a_factorial.tcl  fichero MiniTcl completo"
 	@echo ""
@@ -65,6 +67,9 @@ ast:
 
 formas:
 	$(PYTHON) demo.py formas "$(TEXTO)"
+
+fuente:
+	$(PYTHON) demo.py fuente "$(TEXTO)"
 
 expr:
 	$(PYTHON) demo.py expr "$(EXPR)"

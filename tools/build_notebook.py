@@ -193,8 +193,8 @@ El cuaderno es la fuente de verdad de la entrega.  Cada celda de código lleva l
 
 | Módulo | Contenido |
 |---|---|
-| `model.py` | AST (`Span`, `Node`, `Word`, `Script`, `Expr`…), `Token`, `ParseError` con línea y columna, `cover()`, `expr_shape()` y el `TokenCursor`. |
-| `script_lexer.py` | Lexer manual contextual: modos comando/llaves/comillas, escapes, variables, balanceo, comentarios y `scan_substitution()`. |
+| `model.py` | AST (`Span`, `Node`, `Word`, `Script`, `Expr`…), `Token`, `ParseError` con línea y columna, `cover()`, `expr_shape()`, las vistas `ast_lines()`/`show_ast_compact()` y el `TokenCursor`. |
+| `script_lexer.py` | Lexer manual contextual: modos comando/llaves/comillas, escapes, variables, balanceo, comentarios, `scan_substitution()` y las vistas `show_tokens()`/`show_token_ruler()`. |
 | `script_parser.py` | `ScriptParser` descendente recursivo, `parse_minitcl()` y el callback `read_substitution()`. |
 | `list_reader.py` | Lector de listas (`LIST_WS`, `LIST_BRACED`, `LIST_QUOTED`, `LIST_BARE`) y `format_list()`. |
 | `expr_lexer.py` | `ExprLexer(sly.Lexer)` con los tokens de la sección 5 y la regla `CMD_SUBST` que delega en el lexer manual. |
@@ -222,7 +222,8 @@ Comandos de análisis (el texto va entre comillas; si se omite, el programa lo p
 ```bash
 make tokens TEXTO="set x 1"                   # tokens del lexer manual
 make ast    TEXTO="set x 1"                   # AST del parser descendente recursivo
-make formas TEXTO="if {1} {puts si}"          # formas de comando detectadas
+make formas TEXTO="if {1} {puts si}"          # formas de comando
+make fuente TEXTO="puts a#b"                  # el fuente con los límites de token detectadas
 make expr   EXPR="2 + 3 * 4"                 # tokens + AST de una expresión (SLY)
 make archivo FILE=ejemplos/a_factorial.tcl    # fichero MiniTcl: tokens + AST + formas
 ```
@@ -233,6 +234,7 @@ Los mismos comandos sin `make`, que además aceptan ficheros y las pruebas:
 python3 demo.py tokens "set x 1"
 python3 demo.py ast "set x 1"
 python3 demo.py formas "if {1} {puts si}"
+python3 demo.py fuente "puts a#b"
 python3 demo.py expr "2 + 3 * 4"
 python3 demo.py archivo ejemplos/a_factorial.tcl
 python3 demo.py pruebas

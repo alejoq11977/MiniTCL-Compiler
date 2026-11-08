@@ -214,6 +214,69 @@ class TokenCursor:
         raise ParseError(message, span, self.source, offset)
 
 
+# --- Vistas del AST ---------------------------------------------------------
+# La impresión del cuaderno (show_ast) recorre los campos del dataclass y por
+# eso ocupa una línea por campo.  Estas funciones dan la misma información en
+# una línea por nodo, que es lo que se lee de un vistazo en la terminal.
+
+
+def _parte_etiqueta(parte: "Part") -> str:
+    """Etiqueta corta de una parte de palabra."""
+    if isinstance(parte, Literal):
+        return repr(parte.text)
+    if isinstance(parte, Variable):
+        return f"${parte.name}" + (f"({parte.index})" if parte.index else "")
+    return "[...]"
+
+
+def _etiqueta_y_hijos(valor) -> tuple[str, list]:
+    """Etiqueta de un nodo del AST y la lista de sus hijos."""
+    if isinstance(valor, Script):
+        return f"Script ({len(valor.commands)} comandos)", list(valor.commands)
+    if isinstance(valor, Command):
+        return f"Command ({len(valor.words)} palabras)", list(valor.words)
+    if isinstance(valor, Word):
+        partes = " + ".join(_parte_etiqueta(parte) for parte in valor.parts)
+        return f"Word({valor.mode}) {partes}", []
+    if isinstance(valor, Literal):
+        return f"Literal {valor.text!r}", []
+    if isinstance(valor, Variable):
+        return f"Variable ${valor.name}" + (f"({valor.index})" if valor.index else ""), []
+    if isinstance(valor, CommandSubstitution):
+        return "CommandSubstitution [...]", [valor.script]
+    if isinstance(valor, Constant):
+        return f"Constant {valor.value!r}", []
+    if isinstance(valor, VariableExpr):
+        return f"VariableExpr ${valor.variable.name}", []
+    if isinstance(valor, SubstitutionExpr):
+        return "SubstitutionExpr [...]", [valor.script]
+    if isinstance(valor, Unary):
+        return f"Unary({valor.operator})", [valor.operand]
+    if isinstance(valor, Binary):
+        return f"Binary({valor.operator})", [valor.left, valor.right]
+    return repr(valor), []
+
+
+def ast_lines(valor, sangria: int = 0, ultimo: bool = True, raiz: bool = False) -> list[str]:
+    """El AST como árbol de una línea por nodo."""
+    etiqueta, hijos = _etiqueta_y_hijos(valor)
+    if raiz:
+        cabecera = etiqueta
+    else:
+        cabecera = ("└─ " if ultimo else "├─ ") + etiqueta
+    lineas = [" " * sangria + cabecera]
+    siguiente = sangria if raiz else sangria + 3
+    for indice, hijo in enumerate(hijos):
+        lineas += ast_lines(hijo, siguiente, indice == len(hijos) - 1)
+    return lineas
+
+
+def show_ast_compact(valor) -> None:
+    """Imprime el AST como árbol compacto (una línea por nodo)."""
+    for linea in ast_lines(valor, raiz=True):
+        print(linea)
+
+
 def expr_shape(node):
     """Proyección del AST de expresiones para comparar forma sin offsets."""
     if isinstance(node, Constant):

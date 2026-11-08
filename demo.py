@@ -18,8 +18,8 @@ from dataclasses import fields, is_dataclass
 from command_analyzer import analyze_minitcl
 from expr_lexer import ExprLexer
 from expr_parser import parse_minitcl_expr
-from model import ParseError
-from script_lexer import show_tokens, tokenize_script
+from model import ParseError, show_ast_compact
+from script_lexer import show_token_ruler, show_tokens, tokenize_script
 from script_parser import parse_minitcl, read_substitution
 
 
@@ -41,6 +41,7 @@ def show_ast(value, indent=0):
 
 
 
+
 # --- El cuerpo del módulo empieza aquí (se convierte en la celda del cuaderno).
 import sys  # el cuerpo se genera desde el cuaderno, por eso el import va aquí
 from pathlib import Path  # idem
@@ -51,6 +52,7 @@ AYUDA = """MiniTcl · analizador sintáctico — comandos de la demostración
   python3 demo.py tokens   <texto>             tokens del lexer manual
   python3 demo.py ast      <texto>             AST del parser descendente recursivo
   python3 demo.py formas   <texto>             formas de comando detectadas
+  python3 demo.py fuente   <texto>             el fuente con los límites de token
   python3 demo.py expr     <expresión>         tokens + AST de una expresión (SLY)
   python3 demo.py archivo  <fichero.tcl>       tokens + AST + formas de un fichero
   python3 demo.py <fichero.tcl>                atajo de "archivo"
@@ -97,7 +99,7 @@ def mostrar_tokens(fuente: str, nombre: str = "<terminal>") -> None:
 def mostrar_ast_script(fuente: str, nombre: str = "<terminal>") -> None:
     """AST del parser descendente recursivo."""
     print(f"--- AST (parser descendente recursivo) de {nombre} ---")
-    show_ast(parse_minitcl(fuente, nombre))
+    show_ast_compact(parse_minitcl(fuente, nombre))
 
 
 def mostrar_formas(fuente: str, nombre: str = "<terminal>") -> None:
@@ -105,6 +107,12 @@ def mostrar_formas(fuente: str, nombre: str = "<terminal>") -> None:
     print(f"--- formas de comando de {nombre} ---")
     for comando in analyze_minitcl(fuente, nombre).commands:
         print(f"  {comando.form:16} {len(comando.command.words)} palabras")
+
+
+def mostrar_fuente(fuente: str, nombre: str = "<terminal>") -> None:
+    """El fuente con los límites de cada token marcados debajo."""
+    print(f"--- límites de token de {nombre} ---")
+    show_token_ruler(fuente, tokenize_script(fuente, nombre))
 
 
 def mostrar_expresion(expresion: str) -> None:
@@ -115,7 +123,7 @@ def mostrar_expresion(expresion: str) -> None:
     lexer = ExprLexer(read_substitution=read_substitution)
     show_tokens(list(lexer.tokenize(expresion)))
     print(f"--- AST (sly.Parser, LALR) de {expresion!r} ---")
-    show_ast(parse_minitcl_expr(expresion))
+    show_ast_compact(parse_minitcl_expr(expresion))
 
 
 def demostrar_script(fuente: str, nombre: str = "<input>") -> None:
@@ -168,7 +176,7 @@ def principal(argumentos: list) -> int:
         return 0
     if comando in ("pruebas", "tests"):
         return correr_pruebas()
-    if comando in ("tokens", "ast", "formas"):
+    if comando in ("tokens", "ast", "formas", "fuente"):
         texto = " ".join(resto) if resto else leer_texto(True)
         if not texto:
             print("No hay nada que analizar.")
@@ -178,6 +186,8 @@ def principal(argumentos: list) -> int:
                 mostrar_tokens(texto)
             elif comando == "ast":
                 mostrar_ast_script(texto)
+            elif comando == "fuente":
+                mostrar_fuente(texto)
             else:
                 mostrar_formas(texto)
         except ParseError as error:
