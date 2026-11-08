@@ -85,7 +85,7 @@ ANCHORS = [
 # scripts) y parse_minitcl_expr (rama de expresiones).
 AFTER_SUPPLIED_TESTS = [
     ("notebook", "facades", 0),
-    ("notebook", "demo", 0),
+    ("model", "demo.py", 1),
     ("model", "tests/test_minitcl.py", 1),
 ]
 
@@ -186,35 +186,6 @@ except ImportError:  # pragma: no cover - depende del entorno
     print("SLY no está instalado: las celdas de expresiones no podrán ejecutarse.")
 '''
 
-DEMO_SOURCE = '''# --- Demostración del pipeline completo -------------------------------------
-#
-#   Rama de scripts :  fuente --(lexer manual)--> tokens --(parser descendente)--> AST
-#   Rama de expr    :  texto  --(sly.Lexer)--> tokens --(sly.Parser LALR)--> AST
-#
-# Se imprimen las dos etapas intermedias: los tokens son el resultado del
-# análisis léxico (ahí se ve el contrato del lexer: qué es una palabra, dónde
-# acaba y qué palabras se agrupan) y el AST es el resultado del análisis
-# sintáctico (ahí se ve la estructura del programa).  Ninguna de las dos
-# etapas ejecuta el programa.
-
-print("=== Rama 1: script MiniTcl -> lexer manual -> tokens -> parser descendente -> AST ===")
-fuente = 'set x hola_${nombre}_fin'
-tokens_script = tokenize_script(fuente)
-show_tokens(tokens_script)
-print("  --- AST ---")
-show_ast(parse_minitcl(fuente))
-
-print()
-print("=== Rama 2: expresión -> sly.Lexer -> tokens -> sly.Parser (LALR) -> AST ===")
-expresion = '$n * 2 + [doble 1]'
-# El lexer de SLY necesita el callback que lee la sustitución con el lexer
-# manual de scripts: ese es el puente entre las dos ramas del analizador.
-lexer_expr = ExprLexer(read_substitution=read_substitution)
-tokens_expr = list(lexer_expr.tokenize(expresion))
-show_tokens(tokens_expr)
-print("  --- AST ---")
-show_ast(parse_minitcl_expr(expresion))
-'''
 
 SUMMARY = """## 21. Entrega: módulos, pruebas y respuestas
 
@@ -230,9 +201,22 @@ El cuaderno es la fuente de verdad de la entrega.  Cada celda de código lleva l
 | `expr_parser.py` | `ExprParser(sly.Parser)` con la gramática por niveles y `parse_minitcl_expr()`. |
 | `command_analyzer.py` | Validación de las formas de comando y reanálisis estático de cuerpos y condiciones. |
 | `tests/test_minitcl.py` | Pruebas reproducibles (no requieren `pytest`). |
+| `demo.py` | Demostración del pipeline en la terminal: `python3 demo.py [fichero.tcl]`. |
+| `ejemplos/` | Los cuatro programas de aceptación de la sección 15 y uno con un error. |
+| `Makefile` | El ciclo de trabajo: `make test`, `make demo`, `make build`, `make run`, `make check`. |
 
-Ejecución de las pruebas: `python3 tests/test_minitcl.py`.
-Ejecución del cuaderno: `jupyter nbconvert --execute --to notebook --inplace MiniTcl_Analizador_Descendente_Recursivo_Guia_Estudiante.ipynb`.
+Ciclo de trabajo (`make help` lista todos los objetivos):
+
+```bash
+make test                                  # las 35 pruebas
+make demo                                  # la demostración en la terminal
+make demo ARCHIVO=ejemplos/a_factorial.tcl   # con un fichero MiniTcl
+make build                                 # regenera el cuaderno y los módulos
+make run                                   # ejecuta el cuaderno y guarda las impresiones
+make check                                 # build + test + run (el ciclo completo)
+```
+
+`make build` va siempre **antes** que `make run`: regenerar el cuaderno borra las impresiones que había guardado.
 """
 
 ANSWERS = [
@@ -403,11 +387,7 @@ def build_cells(base_cells):
 
 def build_cell(kind: str, name: str, index: int) -> dict:
     if kind == "notebook":
-        source = {
-            "pip": PIP_SOURCE,
-            "facades": FACADES_SOURCE,
-            "demo": DEMO_SOURCE,
-        }[name]
+        source = {"pip": PIP_SOURCE, "facades": FACADES_SOURCE}[name]
         return code_cell(source)
     total = MODULES[name]["parts"]
     return code_cell(module_cell_source(name, index, total))

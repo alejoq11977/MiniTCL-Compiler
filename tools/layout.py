@@ -92,6 +92,14 @@ MODULES = {
         "parts": 1,
         "cell": None,
     },
+    "demo.py": {
+        # El prefijo son los imports del proyecto y el impresor del AST;
+        # el cuerpo es lo que se convierte en la celda del cuaderno.
+        "prefix": '"""Demostración del pipeline de análisis sintáctico de MiniTcl.\n\nSin argumentos muestra las dos ramas del analizador:\n\n    Rama de scripts :  fuente --(lexer manual)--> tokens --(parser descendente)--> AST\n    Rama de expr    :  texto  --(sly.Lexer)--> tokens --(sly.Parser LALR)--> AST\n\nCon un argumento analiza ese fichero MiniTcl:\n\n    python3 demo.py ejemplos/a_factorial.tcl\n\nLos tokens son el resultado del análisis léxico y el AST el del análisis\nsintáctico.  Ninguna de las dos etapas ejecuta el programa.\n"""\n\nfrom dataclasses import fields, is_dataclass\n\nfrom command_analyzer import analyze_minitcl\nfrom expr_lexer import ExprLexer\nfrom expr_parser import parse_minitcl_expr\nfrom model import ParseError\nfrom script_lexer import show_tokens, tokenize_script\nfrom script_parser import parse_minitcl, read_substitution\n\n\ndef show_ast(value, indent=0):\n    """Impresión estructurada del AST, sin Graphviz ni dependencias externas."""\n    prefix = " " * indent\n    if is_dataclass(value):\n        print(prefix + type(value).__name__)\n        for field in fields(value):\n            if field.name == "span":\n                continue\n            print(prefix + "  " + field.name + ":")\n            show_ast(getattr(value, field.name), indent + 4)\n    elif isinstance(value, tuple):\n        for item in value:\n            show_ast(item, indent)\n    else:\n        print(prefix + repr(value))\n\n\n',
+        "parts": 1,
+        "cut_mode": "prefix",
+        "cell": None,
+    },
     "tests/test_minitcl.py": {
         # El preámbulo (docstring, imports y ajuste del path) es el prefijo:
         # en el cuaderno esas celdas no hacen falta.
@@ -115,4 +123,5 @@ PART_MARKER = "# === MODULE: {name} | PARTE {index}/{total} ==="
 CUTS = {
     "model.py": ["@dataclass(frozen=True)\nclass Token:"],
     "tests/test_minitcl.py": ["# --- Utilidades ---"],
+    "demo.py": ["# --- El cuerpo del módulo empieza aquí"],
 }
